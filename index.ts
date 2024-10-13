@@ -4,14 +4,22 @@ import { Product } from "./entity/Product";
 import { ProductInfo } from "./entity/ProductInfo";
 import bodyParser from "body-parser";
 import { seedProducts } from "./seed";
+import cors from "cors"; // Import CORS
 
 const app = express();
+
+app.use(
+  cors({
+    origin: "http://localhost:3000", // The front-end URL
+  })
+);
+
 app.use(bodyParser.json());
 
 // Initialize TypeORM
 AppDataSource.initialize()
   .then(() => {
-    seedProducts()
+    seedProducts();
     console.log("Data Source has been initialized!");
   })
   .catch((err) => {
@@ -104,13 +112,15 @@ app.delete("/products/:id", async (req, res) => {
 
   try {
     const productRepository = AppDataSource.getRepository(Product);
+    const productInfoRepository = AppDataSource.getRepository(ProductInfo);
     const product = await productRepository.findOneBy({ id: Number(id) });
     if (!product) {
-        res.status(404).send({ message: "Product not found" });
-    }else{
-        await productRepository.remove(product);
-        res.send({ message: "Product deleted" });
+      res.status(404).send({ message: "Product not found" });
+    } else {
+      await productInfoRepository.delete({ product: { id: Number(id) } });
+      await productRepository.remove(product);
     }
+    res.send({ message: "Product deleted" });
   } catch (error) {
     res.status(500).send(error);
   }
